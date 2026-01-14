@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "name": "02_web_apps",
+  "version": "1.0.0",
+  "main": "basic_web.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

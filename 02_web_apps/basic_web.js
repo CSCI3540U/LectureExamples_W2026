@@ -24,17 +24,30 @@ app.get('/login', (request, response) => {
 });
 
 app.post('/login', (request, response) => {
-    // console.log(request.body);
-    // response.send(`/login POST ${request.body['username']}`);
-    const sessId = `${lastSessionId++}`;
+    if ((request.body.username === 'bsmith') && (request.body.password === 'passw0rd')) {
+        const sessId = `${lastSessionId++}`;
 
-    sessionData[sessId] = request.body.username;
+        sessionData[sessId] = request.body.username;
 
-    response.cookie('session-id', sessId, {
-        /*secure: true,*/
-        httpOnly: true,
-        path: '/'
-    });
+        response.cookie('session-id', sessId, {
+            /*secure: true,*/
+            httpOnly: true,
+            path: '/'
+        });
+        response.redirect('/index');
+    } else {
+        response.redirect('/login.html');
+    }
+});
+
+app.get('/logout', (request, response) => {
+    const sessId = request.cookies['session-id'];
+
+    if (sessId) {
+        delete sessionData[sessId];
+
+        response.clearCookie('session-id');
+    }
 
     response.redirect('/index');
 });

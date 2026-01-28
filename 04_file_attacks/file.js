@@ -18,6 +18,20 @@ app.get('/local_file_inclusion', (request, response) => {
     response.sendFile(__dirname + `/${file_name}.php`);
 });
 
+app.get('/dir_traversal', (request, response) => {
+    const file_name = request.query['file'];
+    const file_path = __dirname + '/' + file_name;
+    console.log(`Including: ${file_path}`);
+    response.setHeader('Content-Type', 'text/html');
+    fs.readFile(file_path, (error, data) => {
+        if (error) {
+            console.error(error);
+            return;
+        }
+        response.send(data);
+    });
+});
+
 app.listen(port, () => {
     console.log(`Listening on port ${port}`);
 });

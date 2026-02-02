@@ -5,6 +5,8 @@ const port = 9000;
 const fs = require('fs');
 const path = require('path');
 
+const axios = require('axios');
+
 app.use(express.static('static'));
 
 app.get('/open_redirect', (request, response) => {
@@ -23,13 +25,35 @@ app.get('/dir_traversal', (request, response) => {
     const file_path = __dirname + '/' + file_name;
     console.log(`Including: ${file_path}`);
     response.setHeader('Content-Type', 'text/html');
-    fs.readFile(file_path, (error, data) => {
+    fs.realpath(file_path, (error, resolved_path) => {
         if (error) {
             console.error(error);
             return;
         }
-        response.send(data);
+        console.log(`resolved path: ${resolved_path}`);
+        if (resolved_path.startsWith(__dirname + 'static')) {
+            fs.readFile(file_path, (error, data) => {
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+                response.send(data);
+            });
+        } else {
+            console.log('Directory traversal!');
+            return;
+        }
     });
+    // alternative fix:
+    // response.sendFile(__dirname + file_name);
+});
+
+app.get('/remote_file_inclusion', async (request, response) => {
+    let url_to_include = request.query['page'];
+    try {
+        let page_response = await axios.get(url_to_include);
+        response.send(page_response.data);
+    }
 });
 
 app.listen(port, () => {

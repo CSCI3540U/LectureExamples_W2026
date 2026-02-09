@@ -8,6 +8,7 @@ const path = require('path');
 const axios = require('axios');
 
 app.use(express.static('static'));
+app.use(express.urlencoded({extended: false}));
 app.use(fileUpload({
     limits: { fileSize: 25 * 1024 * 1024 },
     abortOnLimit: true,

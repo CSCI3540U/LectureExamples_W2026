@@ -1,0 +1,14 @@
+{
+  "name": "05_06_auth_and_auth",
+  "version": "1.0.0",
+  "description": "",
+  "main": "auth.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Randy Fortier",
+  "license": "LGPL-3.0-or-later",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

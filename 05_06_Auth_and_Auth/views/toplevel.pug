@@ -1,0 +1,16 @@
+doctype 
+html 
+    head
+        title= title 
+        link(rel="stylesheet", href="styles/main.css") 
+    body
+        ul(class="menu")
+            li
+                a(href="/") Home
+            if (username && username !== '')
+                li 
+                    a(href="/logout") Logout
+            else 
+                li 
+                    a(href="/login") Login
+        block content

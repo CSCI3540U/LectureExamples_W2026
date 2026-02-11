@@ -9,6 +9,9 @@
   "author": "Randy Fortier",
   "license": "LGPL-3.0-or-later",
   "dependencies": {
-    "express": "^5.2.1"
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "pug": "^3.0.3"
   }
 }

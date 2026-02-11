@@ -1,13 +1,17 @@
 const express = require('express');
 const app = express();
+const session = require('express-session');
+const cookieParser = require('cookie-parser')
 const port = 9000;
 
-app.use(express.static('static'));
-app.use(express.urlencoded({extended: false}));
+let nextSessionId = 2;
 
-app.get('/main', (request, response) => {
-    response.send('index');
-});
+let sessionData = {
+   '1': {
+      'email': 'admin@abc.com',
+      'role': 'administrator',
+   },
+};
 
 const loginData = {
     'admin@xyzhappy.com': 'openup',
@@ -24,24 +28,84 @@ const loginData = {
     'lars.nielsen@xyzhappy.com': 'silver bicycle'
 };
 
-app.post('/login', (request, response) => {
-    const email = request.body['email'];
-    if (Object.keys(loginData).includes(email)) {
-        if (request.body['password'] === loginData[email]) {
-            // login success
-            response.redirect('/main');
-        } else {
-            // correct username, incorrect password
-            response.send(`Password does not match our records for ${email}`);
-            return;
-        }
-    } else {
-        // incorrect username, unknown password
-        response.send(`Unknown user: ${email}`);
-        return;
-    }
+function userExists(toFind) {
+   return Object.keys(loginData).includes(toFind);
+}
+
+function checkPassword(email, password) {
+   return loginData[email] === password;
+}
+
+// middleware
+app.use(express.static('www'));
+app.use(express.urlencoded({extended: false}));
+app.use(cookieParser());
+app.use(session({
+   resave: false,
+   saveUninitialized: false,
+   secret: 'the giraffe with its long neck is able to reach the highest branches'
+}));
+app.set('views', __dirname + '/views');
+app.set('view engine', 'pug');
+
+app.get('/home', (request, response) => {
+   console.log(request.cookies);
+   let sessionId = request.cookies['session_id'];
+   let email = sessionData[sessionId]['email'];
+   let role = sessionData[sessionId]['role'];
+   if (email) {
+      response.send(`Welcome, ${email}! Role: ${role}<br /><a href="/logout">Logout</a>`);
+   } else {
+      response.redirect('/login');
+   }
+});
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+ 
+app.get('/login', function(request, response) {
+    response.render('login', {
+       title: 'Login Page',
+       errorMessage: ''
+    });
+});
+ 
+app.post('/processLogin', function(request, response) {
+    let email = request.body.email;
+    let password = request.body.password;
+ 
+    sleep(500).then(() => { 
+       if (userExists(email)) {
+          if (checkPassword(email, password)) {
+             response.cookie('session_id', `${nextSessionId}`);
+             sessionData[nextSessionId] = {email: email, role: 'user'};
+             nextSessionId++;
+    
+             response.redirect('/home');
+          } else {
+             // password does not match
+             response.status(401).render('login', {
+                title: 'Login Page',
+                errorMessage: 'Login incorrect'
+             });
+          }
+       } else {
+          // no such email
+          response.status(401).render('login', {
+             title: 'Login Page',
+             errorMessage: 'Login incorrect'
+          });
+       }
+    });
+});
+
+app.get('/logout', (request, response) => {
+   request.session.email = '';
+
+   response.redirect('/login');
 });
 
 app.listen(port, () => {
-    console.log(`Listening on port ${port}`);
+   console.log(`Web server listening on port ${port}`);
 });

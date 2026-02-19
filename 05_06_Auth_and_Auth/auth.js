@@ -107,5 +107,5 @@ app.get('/logout', (request, response) => {
 });
 
 app.listen(port, () => {
-   console.log(`Web server listening on port ${port}`);
+   console.log(`Web server is now listening on port ${port}`);
 });

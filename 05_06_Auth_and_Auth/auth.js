@@ -72,38 +72,68 @@ app.get('/login', function(request, response) {
 });
  
 app.post('/processLogin', function(request, response) {
-    let email = request.body.email;
-    let password = request.body.password;
- 
-    sleep(500).then(() => { 
-       if (userExists(email)) {
-          if (checkPassword(email, password)) {
-             response.cookie('session_id', `${nextSessionId}`);
-             sessionData[nextSessionId] = {email: email, role: 'user'};
-             nextSessionId++;
-    
-             response.redirect('/home');
-          } else {
-             // password does not match
-             response.status(401).render('login', {
-                title: 'Login Page',
-                errorMessage: 'Login incorrect'
-             });
-          }
-       } else {
-          // no such email
-          response.status(401).render('login', {
-             title: 'Login Page',
-             errorMessage: 'Login incorrect'
-          });
-       }
-    });
+   let email = request.body.email;
+   let password = request.body.password;
+
+   sleep(500).then(() => { 
+      if (userExists(email)) {
+         if (checkPassword(email, password)) {
+            // before the fix
+            // response.cookie('session_id', `${nextSessionId}`);
+            // sessionData[nextSessionId] = {email: email, role: 'user'};
+            // nextSessionId++;
+   
+            // fix (use built-in session middleware):
+            request.session['email'] = email;
+            request.session['role'] = 'user';
+
+            response.redirect('/home');
+            return;
+         }
+      }
+      // no such email or incorrect password
+      response.status(401).render('login', {
+         title: 'Login Page',
+         errorMessage: 'Login incorrect'
+      });
+   });
 });
 
 app.get('/logout', (request, response) => {
    request.session.email = '';
 
    response.redirect('/login');
+});
+
+// IDOR Examples
+
+// fix:
+app.get('/profile', function(request, response) {
+   let name = request.session.email;
+   if (name in loginData) {
+         response.send(`Ciao, ${name}!  Your password is ${loginData[name]}.`);  
+   } else {
+      response.status(400);
+      response.send('Invalid username.');
+   }
+});
+
+// before the fix (getting E-Mail from the `name` parameter)
+// app.get('/profile/:name/', function(request, response) {
+//    // let email = request.params.name; // before the fix
+//    let sessionId = request.cookies['session_id'];
+//    let email = sessionData[sessionId]['email'];
+//    if (email in loginData) {
+//       response.send(`Ciao, ${email}!  Your password is ${loginData[email]}.`);  
+//    } else {
+//       response.status(400);
+//       response.send('Invalid account.');
+//    }
+// });
+
+app.get('/order_status', function(request, response) {
+   let orderId = request.query.order_id;
+   response.send(`Viewing order ${orderId}!`);
 });
 
 app.listen(port, () => {

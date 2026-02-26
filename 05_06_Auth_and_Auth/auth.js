@@ -50,9 +50,15 @@ app.set('view engine', 'pug');
 
 app.get('/home', (request, response) => {
    console.log(request.cookies);
-   let sessionId = request.cookies['session_id'];
-   let email = sessionData[sessionId]['email'];
-   let role = sessionData[sessionId]['role'];
+   // vulnerable code:
+   // let sessionId = request.cookies['session_id'];
+   // let email = sessionData[sessionId]['email'];
+   // let role = sessionData[sessionId]['role'];
+
+   // fixed:
+   let email = request.session['email'];
+   let role = request.session['role'];
+
    if (email) {
       response.send(`Welcome, ${email}! Role: ${role}<br /><a href="/logout">Logout</a>`);
    } else {
@@ -120,9 +126,9 @@ app.get('/profile', function(request, response) {
 
 // before the fix (getting E-Mail from the `name` parameter)
 // app.get('/profile/:name/', function(request, response) {
-//    // let email = request.params.name; // before the fix
-//    let sessionId = request.cookies['session_id'];
-//    let email = sessionData[sessionId]['email'];
+//    let email = request.params.name; // before the fix
+//    //let sessionId = request.cookies['session_id'];
+//    //let email = sessionData[sessionId]['email'];
 //    if (email in loginData) {
 //       response.send(`Ciao, ${email}!  Your password is ${loginData[email]}.`);  
 //    } else {

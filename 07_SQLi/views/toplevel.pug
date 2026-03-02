@@ -3,14 +3,35 @@ html
     head
         title= title 
         link(rel="stylesheet", href="styles/main.css") 
+        link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css")
+        link(rel="stylesheet", href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css")
     body
-        ul(class="menu")
-            li
-                a(href="/") Home
-            if (username && username !== '')
-                li 
-                    a(href="/logout") Logout
-            else 
-                li 
-                    a(href="/login") Login
+        nav(class="navbar", role="navigation", aria-label="main navigation")
+            div(class="navbar-brand")
+                a(role="button", class="navbar-burger", aria-label="menu", aria-expanded="false", data-target="navbarBasicExample")
+                    span(aria-hidden="true")
+                    span(aria-hidden="true")
+                    span(aria-hidden="true")
+                    span(aria-hidden="true")
+
+            div(id="navbarBasicExample", class="navbar-menu")
+                div(class="navbar-start")
+                    if (user && user.role === 'admin')
+                        div(class="navbar-item has-dropdown is-hoverable")
+                            a(class="navbar-link") Admin
+                    a(class="navbar-item") About Us
+
+                div(class="navbar-end")
+                    if (user && user.email && user.email !== '')
+                        div(class="navbar-item has-dropdown is-hoverable")
+                            a(class="navbar-link")= user.email
+                            div(class="navbar-dropdown")
+                                a(class="navbar-item", href="/profile") Your Profile
+                                a(class="navbar-item", href="/logout") Sign Out
+                    div(class="navbar-item")
+                        div(class="buttons are-small")
+                            if (!user || !user.email || user.email === '')
+                                //- a(class="button is-info is-dark is-responsive", href="/register") Sign Up
+                                a(class="button is-info is-dark is-responsive", href="/login") Sign In
+
         block content

@@ -1,21 +1,22 @@
 extends toplevel 
 block content 
-    h1= title 
+      div(class="columns is-centered")
+            div(class="column is-5-tablet is-4-desktop is-3-widescreen")
+                  div(class="box main")
+                        div(class="container")
+                        h1= title 
 
-    div(class="error")= errorMessage 
+                        div(class="error")= errorMessage 
 
-    form(method="post", action="/processLogin", class="form")
-        label(class="label row1", for="email") E-Mail:
-        input(type="text",
-              id="email",
-              name="email",
-              placeholder="your@email.com",
-              class="control row1")
+                        form(method="post", action="/processLogin", class="form loginDialog")
+                              div(class="field")
+                                    label(class="label") E-Mail
+                                    div(class="control")
+                                          input(class="input", type="email", name="email", placeholder="someone@somedomain.org")
 
-        label(class="label row2", for="password") Password:
-        input(type="password",
-              id="password",
-              name="password",
-              class="control row2")
+                              div(class="field")
+                                    label(class="label") Password
+                                    div(class="control")
+                                          input(class="input", type="password", name="password", placeholder="your password")
 
-        button(class="control row3") Log In
+                              input(type="submit", class="button is-info is-dark is-responsive", value="Sign In") 

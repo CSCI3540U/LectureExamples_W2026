@@ -33,9 +33,19 @@ function isEmailAlreadyUsed(email) {
 
 function checkEmailAndPassword(email, password) {
     const user = db.prepare(`SELECT * FROM auth_data WHERE email = '${email}' and hashedPw = '${hash(password)}'`).get();
-    //const user = db.prepare(`SELECT * FROM auth_data WHERE email = ? and hashedPw = ?`).get(email, hash(password));
+    // const user = db.prepare(`SELECT * FROM auth_data WHERE email = ? and hashedPw = ?`).get(email, hash(password));
     if (user) {
         return user.userId;
+    } else {
+        return false;
+    }
+}
+
+function getUser(email) {
+    const user = db.prepare(`SELECT * FROM auth_data WHERE email = '${email}'`).get();
+    //const user = db.prepare(`SELECT * FROM auth_data WHERE email = ?`).get(email);
+    if (user) {
+        return user;
     } else {
         return false;
     }
@@ -52,5 +62,6 @@ const syncWait = ms => {
 
 module.exports.isEmailAlreadyUsed = isEmailAlreadyUsed;
 module.exports.checkEmailAndPassword = checkEmailAndPassword;
+module.exports.getUser = getUser;
 module.exports.shutdown =shutdown;
 module.exports.syncWait = syncWait;

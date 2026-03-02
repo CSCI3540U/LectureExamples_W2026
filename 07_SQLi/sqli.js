@@ -5,8 +5,8 @@ const port = 9000;
 const session = require('express-session');
 const cookieParser = require('cookie-parser')
 
-const Database = require('better-sqlite3');
-const db = new Database(__dirname + 'auth_data.db');
+// const Database = require('better-sqlite3');
+// const db = new Database(__dirname + 'auth_data.db');
 
 const auth_model = require('./models/auth_model.js');
 
@@ -34,23 +34,33 @@ app.get('/home', (request, response) => {
     } else {
        response.redirect('/login');
     }
- });
+});
+
+app.get('/profile', (request, response) => {
+    const email = request.query['email'];
+    const user = auth_model.getUser(email);
+    response.render('profile', {
+        title: 'Your Profile',
+        errorMessage: '',
+        user: user
+    });
+});
 
 app.get('/login', function(request, response) {
     response.render('login', {
        title: 'Login Page',
        errorMessage: ''
     });
- });
+});
 
- app.post('/processLogin', function(request, response) {
+app.post('/processLogin', function(request, response) {
     sleep(500).then(() => { 
        let checkResult = auth_model.checkEmailAndPassword(request.body.email, request.body.password);
        if (checkResult) {
           request.session['email'] = request.body.email;
           request.session['role'] = 'user';
  
-          response.redirect('/home');
+          response.redirect(`/profile?email=${request.body.email}`);
           return;
        }
        // no such email or incorrect password
@@ -59,15 +69,22 @@ app.get('/login', function(request, response) {
           errorMessage: 'Login incorrect'
        });
     });
- });
+});
  
- app.get('/logout', (request, response) => {
+app.get('/logout', (request, response) => {
     request.session.email = '';
     request.session.role = '';
  
     response.redirect('/login');
- });
+});
 
- app.listen(port, () => {
+process.on('SIGTERM', () => {
+    console.log('Shutting down web server.');
+    server.close(() => {
+        auth_model.shutdown();
+    });
+});
+
+const server = app.listen(port, () => {
     console.log(`Web server listening on port ${port}`);
- });
+});

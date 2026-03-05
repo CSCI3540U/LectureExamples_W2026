@@ -19,6 +19,8 @@ html
                     if (user && user.role === 'admin')
                         div(class="navbar-item has-dropdown is-hoverable")
                             a(class="navbar-link") Admin
+                    a(class="navbar-item") Products
+                    a(class="navbar-item") Services
                     a(class="navbar-item") About Us
 
                 div(class="navbar-end")
@@ -34,4 +36,5 @@ html
                                 //- a(class="button is-info is-dark is-responsive", href="/register") Sign Up
                                 a(class="button is-info is-dark is-responsive", href="/login") Sign In
 
+        div &nbsp;
         block content

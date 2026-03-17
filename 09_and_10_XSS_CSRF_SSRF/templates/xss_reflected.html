@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}XSS — Reflected{% endblock %}
+{% block content %}
+<h1>XSS — Reflected</h1>
+
+<div class="info">
+  <strong>How it works:</strong> The server reads a value from the URL query string and writes it
+  directly into the HTML response without encoding it. Whatever the browser receives is executed as
+  markup — including <code>&lt;script&gt;</code> tags and event handlers.
+</div>
+
+<div class="card mode-bar">
+  <span class="mode-bar-label">Protection mode:</span>
+  <button class="mode-btn {% if mode == 'vulnerable' %}mode-active-vuln{% endif %}"
+          onclick="setMode('vulnerable')">Vulnerable</button>
+  <button class="mode-btn {% if mode == 'escaped' %}mode-active-safe{% endif %}"
+          onclick="setMode('escaped')">Protected: auto-escape</button>
+  <p class="mode-desc">
+    {% if mode == 'vulnerable' %}
+      No protection — <code>Markup(name)</code> marks input as safe, bypassing Jinja2 auto-escaping.
+    {% else %}
+      Jinja2 auto-escaping active — <code>&lt;</code>, <code>&gt;</code> and <code>"</code>
+      are encoded as HTML entities before output. Payloads are rendered as text, not executed.
+    {% endif %}
+  </p>
+</div>
+<script>
+  function setMode(m) {
+    var url = new URL(window.location);
+    url.searchParams.set('mode', m);
+    window.location = url;
+  }
+</script>
+
+<div class="card">
+  <span class="{% if mode == 'vulnerable' %}vuln-label{% else %}safe-label{% endif %}">
+    {% if mode == 'vulnerable' %}Vulnerable{% else %}Protected{% endif %}
+  </span>
+  <h2>Greet a User</h2>
+  <p>Enter a name to be greeted. In vulnerable mode the name is placed into the page as raw HTML.</p>
+
+  <form method="get" action="/xss/reflected">
+    <input type="hidden" name="mode" value="{{ mode }}">
+    <label for="name">Name</label>
+    <!-- name_input is always a plain string — Jinja2 safely escapes it in the value attribute -->
+    <input type="text" id="name" name="name"
+           value="{{ name_input }}"
+           placeholder='Try: &lt;img src=x onerror="alert(1)"&gt;'>
+    <button type="submit">Greet</button>
+  </form>
+
+  {% if name_input %}
+  <hr class="divider">
+  <p><strong>Server response:</strong></p>
+  <!-- name_display is either Markup (raw HTML) or a plain string (auto-escaped) -->
+  <div style="padding:10px; background:#010409;
+              border:1px solid {% if mode == 'vulnerable' %}#f85149{% else %}#238636{% endif %};
+              border-radius:4px;">
+    Hello, {{ name_display }}!
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Payloads to try</h2>
+  <ul>
+    <li><code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code></li>
+    <li><code>&lt;img src=x onerror="alert(document.cookie)"&gt;</code></li>
+    <li><code>&lt;svg onload="alert(1)"&gt;</code></li>
+    <li><code>&lt;a href="javascript:alert(1)"&gt;Click me&lt;/a&gt;</code></li>
+  </ul>
+  <p style="font-size:0.85rem; color:#8b949e;">
+    Switch to <strong>Protected</strong> mode above and try the same payloads — they render as
+    harmless text instead of executing.
+  </p>
+</div>
+
+<div class="card">
+  {% if mode == 'vulnerable' %}
+  <span class="vuln-label">Vulnerable code</span>
+  <pre><code class="language-python"># app.py — Markup() bypasses Jinja2 auto-escaping
+name = request.args.get("name", "")
+return render_template("xss_reflected.html", name_display=Markup(name))</code></pre>
+  {% else %}
+  <span class="safe-label">Protected code</span>
+  <pre><code class="language-python"># app.py — plain string; Jinja2 auto-escapes on output
+name = request.args.get("name", "")
+return render_template("xss_reflected.html", name_display=name)</code></pre>
+  {% endif %}
+
+  <p style="font-size:0.82rem; color:#8b949e; margin-top:8px;">
+    Note: the <code>value="{{ name_input }}"</code> attribute always uses the plain string,
+    so it never injects a second copy of the payload into the DOM.
+  </p>
+</div>
+
+<div class="card challenge-card">
+  <span class="challenge-label">Challenge</span>
+  <h2>Retrieve the Flag</h2>
+  <p>
+    The flag lives at <code>/api/flag/xss-reflected</code> and only responds to requests that
+    originate <em>from this page</em>. Use XSS to make the browser fetch it.
+  </p>
+  <button class="btn btn-secondary" onclick="
+    var h = document.getElementById('xss-hint');
+    h.hidden = !h.hidden;
+    this.textContent = h.hidden ? 'Show hint' : 'Hide hint';
+  ">Show hint</button>
+  <div id="xss-hint" hidden style="margin-top:14px;">
+    <pre><code class="language-html">&lt;script&gt;
+  fetch('/api/flag/xss-reflected')
+    .then(r =&gt; r.json())
+    .then(d =&gt; alert(d.flag || d.error));
+&lt;/script&gt;</code></pre>
+    <p style="font-size:0.85rem; color:#8b949e; margin-top:8px;">
+      Or with an event-handler payload:<br>
+      <code>&lt;img src=x onerror="fetch('/api/flag/xss-reflected').then(r=&gt;r.json()).then(d=&gt;alert(d.flag))"&gt;</code>
+    </p>
+  </div>
+</div>
+{% endblock %}

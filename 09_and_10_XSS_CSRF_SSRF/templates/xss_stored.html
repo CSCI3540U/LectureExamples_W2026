@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}XSS — Stored{% endblock %}
+{% block content %}
+<h1>XSS — Stored</h1>
+
+<div class="info">
+  <strong>How it works:</strong> User-supplied content is saved to the server's storage and then
+  rendered as raw HTML for <em>every</em> visitor who loads the page.
+  A single injected payload persists and runs in every victim's browser until it is removed.
+</div>
+
+<div class="card mode-bar">
+  <span class="mode-bar-label">Protection mode:</span>
+  <a href="/xss/stored?mode=vulnerable"
+     class="mode-btn {% if mode == 'vulnerable' %}mode-active-vuln{% endif %}">Vulnerable</a>
+  <a href="/xss/stored?mode=escaped"
+     class="mode-btn {% if mode == 'escaped' %}mode-active-safe{% endif %}">Protected: auto-escape</a>
+  <p class="mode-desc">
+    {% if mode == 'vulnerable' %}
+      No protection — stored comments are wrapped in <code>Markup()</code> and rendered as raw HTML.
+    {% else %}
+      Jinja2 auto-escaping active — stored comments are rendered as plain text.
+      Payloads injected in vulnerable mode are now displayed harmlessly.
+    {% endif %}
+  </p>
+</div>
+
+<div class="card">
+  <span class="{% if mode == 'vulnerable' %}vuln-label{% else %}safe-label{% endif %}">
+    {% if mode == 'vulnerable' %}Vulnerable{% else %}Protected{% endif %}
+  </span>
+  <h2>Community Comments</h2>
+
+  <form method="post" action="/xss/stored?mode={{ mode }}">
+    <label for="comment">Leave a comment</label>
+    <textarea id="comment" name="comment" rows="3"
+              placeholder='Try: &lt;script&gt;alert("Stored XSS!")&lt;/script&gt;'></textarea>
+    <button type="submit">Post</button>
+    <a class="btn btn-secondary" href="/xss/stored/clear?mode={{ mode }}"
+       style="margin-left:8px">Clear all comments</a>
+  </form>
+</div>
+
+{% if comments %}
+<div class="card">
+  <h2>Posted Comments</h2>
+  {% for comment in comments %}
+  <div style="padding:10px; background:#010409; border:1px solid #21262d;
+              border-radius:4px; margin-bottom:8px;">
+    {{ comment }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  {% if mode == 'vulnerable' %}
+  <span class="vuln-label">Vulnerable code</span>
+  <pre><code class="language-python"># app.py — comments wrapped in Markup(), bypassing auto-escape on render
+comments = [Markup(c) for c in stored_comments]
+return render_template("xss_stored.html", comments=comments)</code></pre>
+  {% else %}
+  <span class="safe-label">Protected code</span>
+  <pre><code class="language-python"># app.py — plain strings passed; Jinja2 auto-escapes on output
+comments = stored_comments
+return render_template("xss_stored.html", comments=comments)</code></pre>
+  {% endif %}
+  <p style="font-size:0.85rem; color:#8b949e; margin-top:8px;">
+    The stored data is identical in both modes — only the rendering differs.
+    Switch modes after injecting a payload to see the same comment treated differently.
+  </p>
+</div>
+
+<div class="card">
+  <h2>Payloads to try</h2>
+  <ul>
+    <li><code>&lt;script&gt;alert('Stored XSS!')&lt;/script&gt;</code></li>
+    <li><code>&lt;img src=x onerror="alert('cookie: '+document.cookie)"&gt;</code></li>
+    <li><code>&lt;b style="color:#f85149"&gt;I can change the page layout!&lt;/b&gt;</code></li>
+  </ul>
+  <p style="font-size:0.85rem; color:#8b949e;">
+    Inject a payload in <strong>Vulnerable</strong> mode, then switch to <strong>Protected</strong>
+    — the same stored comment now renders as harmless text.
+  </p>
+</div>
+
+<div class="card challenge-card">
+  <span class="challenge-label">Challenge</span>
+  <h2>Retrieve the Flag</h2>
+  <p>
+    Post a comment that fetches the flag from <code>/api/flag/xss-stored</code> and displays it
+    automatically when any visitor loads the page.
+  </p>
+</div>
+{% endblock %}

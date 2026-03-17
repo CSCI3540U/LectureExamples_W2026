@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}XSS/RF Demos{% endblock %}</title>
+  <!-- Prism.js syntax highlighting (okaidia dark theme) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Consolas', 'Monaco', monospace;
+      background: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+      padding: 0;
+    }
+    nav {
+      background: #010409;
+      padding: 12px 24px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      border-bottom: 1px solid #21262d;
+    }
+    nav a {
+      color: #90d1fd;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    nav a:hover { color: #cbe7fa; text-decoration: underline; }
+    nav .brand { color: #e6edf3; font-size: 1rem; margin-right: 12px; }
+    .container {
+      max-width: 860px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+    h1 { color: #90d1fd; border-bottom: 1px solid #21262d; padding-bottom: 8px; }
+    h2 { color: #58a6ff; }
+    a { color: #58a6ff; }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .vuln-label {
+      display: inline-block;
+      background: #df7674;
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 3px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: bold;
+    }
+    .safe-label {
+      display: inline-block;
+      background: #90d1fd;
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 3px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: bold;
+    }
+    .challenge-label {
+      display: inline-block;
+      background: #9e6a03;
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 3px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: bold;
+    }
+    .card.challenge-card { border-color: #d29922; }
+    label { display: block; margin-bottom: 4px; font-size: 0.85rem; color: #8b949e; }
+    input[type=text], input[type=number], textarea {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 8px 10px;
+      border-radius: 4px;
+      width: 100%;
+      margin-bottom: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9rem;
+    }
+    input[type=text]:focus, input[type=number]:focus, textarea:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+    button, .btn {
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid #90d1fd;
+      padding: 8px 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9rem;
+      text-decoration: none;
+      display: inline-block;
+    }
+    button:hover, .btn:hover { background: #f85149; color: #fff; }
+    .btn-secondary { border-color: #30363d; }
+    .btn-secondary:hover { background: #30363d; border-color: #30363d; }
+    code {
+      background: #161b22;
+      border: 1px solid #30363d;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.85rem;
+      color: #e6edf3;
+    }
+    pre[class*="language-"] {
+      background: #0d1117 !important;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      margin: 8px 0 12px;
+      padding: 14px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    code[class*="language-"] {
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+      font-size: 0.82rem;
+    }
+    pre:not([class*="language-"]) {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 14px;
+      margin: 8px 0 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-size: 0.82rem;
+      color: #e6edf3;
+    }
+    .info {
+      background: rgba(31, 111, 235, 0.08);
+      border-left: 4px solid #1f6feb;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+    .warning {
+      background: rgba(248, 81, 73, 0.08);
+      border-left: 4px solid #f85149;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.88rem;
+    }
+    .result-box {
+      background: #010409;
+      border: 1px solid #21262d;
+      padding: 14px;
+      margin-top: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-size: 0.82rem;
+      color: #3fb950;
+    }
+    .flag-output {
+      color: #d29922;
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-top: 12px;
+      min-height: 1.4em;
+    }
+    ul { padding-left: 20px; line-height: 1.8; }
+    .divider { border: none; border-top: 1px solid #21262d; margin: 24px 0; }
+    .mode-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 12px 20px;
+      margin-bottom: 24px;
+      border-color: #21262d;
+    }
+    .mode-bar-label { color: #8b949e; font-size: 0.82rem; white-space: nowrap; }
+    .mode-btn {
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      text-decoration: none;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      cursor: pointer;
+      background: none;
+      font-family: inherit;
+    }
+    .mode-btn:hover { background: #21262d; color: #e6edf3; border-color: #8b949e; }
+    .mode-btn.mode-active-vuln {
+      background: #df7674; border-color: #df7674; color: #fff;
+    }
+    .mode-btn.mode-active-safe {
+      background: #90d1fd; border-color: #90d1fd; color: #fff;
+    }
+    .mode-desc {
+      width: 100%;
+      margin: 4px 0 0;
+      font-size: 0.8rem;
+      color: #8b949e;
+    }
+    .pre-wrapper {
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      border: 1px solid #30363d;
+      border-radius: 3px;
+      background: #21262d;
+      color: #8b949e;
+      cursor: pointer;
+      font-family: inherit;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .pre-wrapper:hover .copy-btn { opacity: 1; }
+    .copy-btn:hover { background: #30363d; color: #e6edf3; border-color: #8b949e; }
+    .copy-btn.copied { color: #3fb950; border-color: #3fb950; }
+  </style>
+</head>
+<body>
+  <nav>
+    <span class="brand">&#x1F512; Security Demos</span>
+    <a href="/">Home</a>
+    <a href="/xss/reflected">XSS (Reflected)</a>
+    <a href="/xss/stored">XSS (Stored)</a>
+    <a href="/csrf/bank">CSRF</a>
+    <a href="/ssrf">SSRF</a>
+  </nav>
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <script>
+    document.querySelectorAll('pre').forEach(function(pre) {
+      var wrapper = document.createElement('div');
+      wrapper.className = 'pre-wrapper';
+      pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+      var btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.textContent = 'Copy';
+      btn.addEventListener('click', function() {
+        var code = pre.querySelector('code');
+        navigator.clipboard.writeText(code ? code.innerText : pre.innerText).then(function() {
+          btn.textContent = 'Copied!';
+          btn.classList.add('copied');
+          setTimeout(function() {
+            btn.textContent = 'Copy';
+            btn.classList.remove('copied');
+          }, 1500);
+        });
+      });
+      wrapper.appendChild(btn);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}CSRF — Victim Bank{% endblock %}
+{% block content %}
+<h1>CSRF — Victim Bank</h1>
+
+<div class="info">
+  <strong>Scenario:</strong> You are logged in to your bank. In vulnerable mode the transfer form
+  has no CSRF token — any page can silently submit it on your behalf. In protected mode a
+  session-bound token is required and the forged request is rejected.
+</div>
+
+<!-- Mode selector -->
+<div class="card mode-bar">
+  <span class="mode-bar-label">Protection mode:</span>
+  <a href="/csrf/bank?mode=vulnerable"
+     class="mode-btn {% if mode == 'vulnerable' %}mode-active-vuln{% endif %}">Vulnerable</a>
+  <a href="/csrf/bank?mode=protected"
+     class="mode-btn {% if mode == 'protected' %}mode-active-safe{% endif %}">Protected: CSRF token</a>
+  <p class="mode-desc">
+    {% if mode == 'vulnerable' %}
+      No token — any cross-origin POST to this endpoint is processed unconditionally.
+    {% else %}
+      A session-bound CSRF token is embedded in the form. Requests that don't carry the correct
+      token are rejected, so the evil page's forged POST cannot succeed.
+    {% endif %}
+  </p>
+</div>
+
+<div class="card">
+  <h2>Account Balance</h2>
+  <p style="font-size:2rem; color:{% if balance < 1000 %}#f85149{% else %}#3fb950{% endif %}; margin:8px 0;">
+    ${{ balance }}
+  </p>
+  <a class="btn btn-secondary" href="/csrf/bank/reset?mode={{ mode }}">Reset to $1,000</a>
+</div>
+
+{% if csrf_blocked %}
+<div class="warning">
+  <strong>Attack blocked!</strong> The forged POST did not include a valid CSRF token —
+  the transfer was rejected.
+</div>
+{% endif %}
+
+<div class="card">
+  <span class="{% if mode == 'vulnerable' %}vuln-label{% else %}safe-label{% endif %}">
+    {% if mode == 'vulnerable' %}Vulnerable — no CSRF protection{% else %}Protected — token required{% endif %}
+  </span>
+  <h2>Transfer Funds</h2>
+
+  <form method="post" action="/csrf/bank">
+    {% if mode == 'protected' %}
+    <!-- CSRF token hidden field — required for the POST to succeed -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% endif %}
+    <label for="recipient">Recipient</label>
+    <input type="text" id="recipient" name="recipient" value="Alice" placeholder="Recipient name">
+
+    <label for="amount">Amount ($)</label>
+    <input type="number" id="amount" name="amount" value="50" min="0">
+
+    <button type="submit">Transfer</button>
+  </form>
+</div>
+
+{% if log %}
+<div class="card">
+  <h2>Transfer Log</h2>
+  <ul>
+    {% for entry in log %}
+    <li>{{ entry }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card">
+  {% if mode == 'vulnerable' %}
+  <span class="vuln-label">Vulnerable code</span>
+  <pre><code class="language-python"># app.py — no token check; any POST is processed
+if request.method == "POST":
+    amount = int(request.form.get("amount", 0))
+    bank_balance -= amount   # ← runs for ANY POST, from ANY origin</code></pre>
+  {% else %}
+  <span class="safe-label">Protected code</span>
+  <pre><code class="language-python"># app.py — token validated against session
+if request.method == "POST":
+    submitted = request.form.get("csrf_token", "")
+    if submitted != session.get("csrf_token"):
+        csrf_blocked = True   # ← forged request rejected
+
+# Template includes the token as a hidden field:
+# &lt;input type="hidden" name="csrf_token" value="{% raw %}{{ csrf_token }}{% endraw %}"&gt;</code></pre>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Demo steps</h2>
+  <ol style="line-height:2.2;">
+    <li>Select <strong>Vulnerable</strong> mode above — note the ${{ balance }} balance.</li>
+    <li>Open the <a href="/csrf/evil">attacker's evil page</a> in the same browser tab.</li>
+    <li>Return here — balance has dropped, proving the forged POST went through.</li>
+    <li>Reset the balance, switch to <strong>Protected</strong> mode.</li>
+    <li>Visit the evil page again — the blocked warning will appear and balance stays unchanged.</li>
+  </ol>
+</div>
+
+<div class="card challenge-card">
+  <span class="challenge-label">Challenge</span>
+  <h2>Ready to be tested?</h2>
+  <p>
+    The challenge requires you to craft a CSRF attack yourself against a different target.
+    Understanding this demo first will give you what you need.
+  </p>
+  <a class="btn" href="/csrf/challenge">Go to CSRF Challenge &rarr;</a>
+</div>
+{% endblock %}

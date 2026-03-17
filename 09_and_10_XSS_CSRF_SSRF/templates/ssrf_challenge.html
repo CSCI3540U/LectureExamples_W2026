@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}SSRF — Challenge{% endblock %}
+{% block content %}
+<h1>SSRF — Challenge</h1>
+
+<div class="info">
+  <strong>Scenario:</strong> You are auditing a currency exchange application. The rate lookup
+  form fetches live data from an internal microservice. Find and access a restricted endpoint
+  on that service that is not intended to be publicly reachable.
+</div>
+
+<div class="card">
+  <span class="vuln-label">Vulnerable</span>
+  <h2>Currency Exchange Rates</h2>
+
+  <form method="post" action="/ssrf/challenge" id="currency-form">
+    <label for="pair">Currency pair</label>
+    <select name="pair" id="pair" onchange="updateUrl()">
+      {% for p in pairs %}
+      <option value="{{ p }}" {% if p == selected_pair %}selected{% endif %}>{{ p }}</option>
+      {% endfor %}
+    </select>
+    <input type="hidden" name="url" id="currency-url"
+           value="http://127.0.0.1:5000/internal/currency/{{ selected_pair }}">
+    <button type="submit">Get Rate</button>
+    <a class="btn btn-secondary" href="/ssrf/challenge/reset" style="margin-left:8px;">Reset</a>
+  </form>
+
+  {% if fetched_url %}
+  <p style="font-size:0.8rem; color:#8b949e; margin-top:12px;">
+    Server fetched: <code>{{ fetched_url }}</code>
+  </p>
+  {% endif %}
+
+  {% if rate_data %}
+  <hr class="divider">
+  <div style="padding:8px 0;">
+    <span style="font-size:1.4rem; font-weight:bold; color:#e6edf3;">
+      1 {{ rate_data.pair.split('-')[0] }} = {{ rate_data.rate }} {{ rate_data.pair.split('-')[1] }}
+    </span>
+    <p style="color:#8b949e; font-size:0.85rem; margin:4px 0 0;">{{ rate_data.name }}</p>
+  </div>
+  {% elif result is not none %}
+  <hr class="divider">
+  <p style="font-size:0.8rem; color:#f85149; margin-bottom:6px;">
+    Server returned unexpected content from <code>{{ fetched_url }}</code>:
+  </p>
+  <div class="result-box">{{ result }}</div>
+  {% endif %}
+
+  {% if error %}
+  <hr class="divider">
+  <p style="color:#f85149; font-size:0.85rem;">{{ error }}</p>
+  {% endif %}
+</div>
+
+<div class="card challenge-card">
+  <span class="challenge-label">Challenge</span>
+  <h2>Find the Restricted Endpoint</h2>
+  <p>
+    The hidden <code>url</code> field in the form above controls what the server fetches.
+    Modify it via DevTools to explore the internal currency service at
+    <code>http://127.0.0.1:5000/internal/currency/</code> and find a restricted endpoint
+    that exposes sensitive data.
+  </p>
+  <button class="btn btn-secondary" onclick="
+    var h = document.getElementById('ssrf-hint');
+    h.hidden = !h.hidden;
+    this.textContent = h.hidden ? 'Show hint' : 'Hide hint';
+  ">Show hint</button>
+  <div id="ssrf-hint" hidden style="margin-top:14px;">
+    <p style="font-size:0.85rem; color:#8b949e; margin:0;">
+      The currency service exposes a listing of its own endpoints — try fetching its base path
+      (remove the currency pair from the end of the URL) to discover what routes are available.
+    </p>
+  </div>
+</div>
+
+<div class="card challenge-card" style="margin-top:0;">
+  <span class="challenge-label">Flag</span>
+  <h2>Claim Your Flag</h2>
+  <p>Once you have accessed the restricted admin endpoint via SSRF, claim your flag below.</p>
+  <button onclick="
+    fetch('/api/flag/ssrf-challenge')
+      .then(r => r.json())
+      .then(d => document.getElementById('ssrf-flag').textContent = d.flag || d.error)
+  ">Claim Flag</button>
+  <p class="flag-output" id="ssrf-flag"></p>
+</div>
+
+<script>
+  function updateUrl() {
+    var pair = document.getElementById('pair').value;
+    document.getElementById('currency-url').value =
+      'http://127.0.0.1:5000/internal/currency/' + pair;
+  }
+</script>
+{% endblock %}

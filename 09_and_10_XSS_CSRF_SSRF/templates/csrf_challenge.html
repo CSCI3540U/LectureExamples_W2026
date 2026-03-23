@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}CSRF — Challenge{% endblock %}
+{% block content %}
+<h1>CSRF — Challenge</h1>
+
+<div class="info">
+  This challenge is separate from the bank demo. You must craft your own attack from scratch.
+  The target is a different application with a different endpoint and form fields.
+</div>
+
+<div class="card">
+  <h2>Scenario</h2>
+  <p>
+    A user is permanently logged in to an account management portal.
+    Their profile page contains an unprotected form that lets them change their email address.
+    Your goal is to change their email to <code>pwned@csrf.attack</code> without them clicking anything.
+  </p>
+  <p>
+    The victim's profile is at
+    <a href="/csrf/challenge/profile" target="_blank">/csrf/challenge/profile</a>
+    (opens in a new tab so you can inspect it while working).
+  </p>
+</div>
+
+<div class="card">
+  <h2>Steps</h2>
+  <ol style="line-height:2.4;">
+    <li>
+      Open the <a href="/csrf/challenge/profile" target="_blank">victim's profile</a> and
+      inspect the page source — find the form's <code>action</code> URL and the
+      <code>name</code> of the email input field.
+    </li>
+    <li>
+      Go to the <a href="/csrf/challenge/editor">attack editor</a> and write HTML that
+      automatically submits a POST to that endpoint with
+      <code>email=pwned@csrf.attack</code> — without the victim clicking anything.
+    </li>
+    <li>
+      Click <strong>Deploy</strong> in the editor. Your HTML is served as a page and
+      loaded in the preview iframe, simulating the victim visiting your evil site.
+    </li>
+    <li>
+      If the attack works, the victim's email below will change. Then claim your flag.
+    </li>
+  </ol>
+  <a class="btn" href="/csrf/challenge/editor">Open Attack Editor &rarr;</a>
+</div>
+
+<div class="card">
+  <h2>Current victim email</h2>
+  <p id="victim-email" style="font-size:1.2rem; font-family:monospace; margin:8px 0;">
+    {{ email }}
+  </p>
+  <button onclick="refreshStatus()" class="btn btn-secondary" style="margin-right:10px;">
+    Refresh
+  </button>
+  <a class="btn btn-secondary" href="/csrf/challenge/reset">Reset challenge</a>
+</div>
+
+<div class="card challenge-card">
+  <span class="challenge-label">Flag</span>
+  <h2>Claim Your Flag</h2>
+  <p>Available once the victim's email has been changed via a forged request from your attack page.</p>
+  <button onclick="claimFlag()">Claim Flag</button>
+  <p class="flag-output" id="flag-out"></p>
+</div>
+
+<script>
+  function refreshStatus() {
+    fetch('/api/csrf-challenge/status')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('victim-email').textContent = d.email;
+      });
+  }
+
+  function claimFlag() {
+    fetch('/api/flag/csrf-challenge')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('flag-out').textContent = d.flag || d.error;
+      });
+  }
+</script>
+{% endblock %}

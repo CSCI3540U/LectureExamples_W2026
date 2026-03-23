@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}SSRF Demo{% endblock %}
+{% block content %}
+<h1>SSRF — Server-Side Request Forgery</h1>
+
+<div class="info">
+  <strong>How it works:</strong> The application accepts user input and uses it to construct a
+  URL that the <em>server</em> then fetches on your behalf. If that URL isn't validated, an
+  attacker can point it at internal services that are unreachable from the public internet.
+</div>
+
+<div class="card mode-bar">
+  <span class="mode-bar-label">Protection mode:</span>
+  <a href="/ssrf?mode=vulnerable"
+     class="mode-btn {% if mode == 'vulnerable' %}mode-active-vuln{% endif %}">Vulnerable</a>
+  <a href="/ssrf?mode=protected"
+     class="mode-btn {% if mode == 'protected' %}mode-active-safe{% endif %}">Protected: no outbound fetch</a>
+  <p class="mode-desc">
+    {% if mode == 'vulnerable' %}
+      The hidden <code>url</code> field is sent to the server and fetched verbatim.
+      Modify it in DevTools to reach any address the server can connect to.
+    {% else %}
+      The server ignores the <code>url</code> field entirely and looks the ticker up in a
+      local dictionary — no outbound HTTP request is ever made.
+    {% endif %}
+  </p>
+</div>
+
+<div class="card">
+  <span class="{% if mode == 'vulnerable' %}vuln-label{% else %}safe-label{% endif %}">
+    {% if mode == 'vulnerable' %}Vulnerable{% else %}Protected{% endif %}
+  </span>
+  <h2>Live Stock Prices</h2>
+
+  <form method="post" action="/ssrf?mode={{ mode }}" id="stock-form">
+    <label for="ticker">Select stock</label>
+    <select name="ticker" id="ticker" onchange="updateUrl()">
+      {% for t in tickers %}
+      <option value="{{ t }}" {% if t == selected_ticker %}selected{% endif %}>
+        {{ t }} — {{ {"AAPL":"Apple Inc.","GOOG":"Alphabet Inc.","MSFT":"Microsoft Corp.","AMZN":"Amazon.com Inc."}[t] }}
+      </option>
+      {% endfor %}
+    </select>
+    <!--
+      SSRF vector: this hidden field controls what URL the server fetches.
+      In vulnerable mode, edit it in DevTools to fetch any internal address.
+    -->
+    <input type="hidden" name="url" id="stock-url"
+           value="http://127.0.0.1:5000/internal/stocks/{{ selected_ticker }}">
+    <button type="submit">Get Price</button>
+  </form>
+
+  {% if fetched_url and mode == 'vulnerable' %}
+  <p style="font-size:0.8rem; color:#8b949e; margin-top:12px;">
+    Server fetched: <code>{{ fetched_url }}</code>
+  </p>
+  {% endif %}
+
+  {% if stock_data %}
+  <hr class="divider">
+  <div style="display:flex; align-items:baseline; gap:16px; padding:8px 0;">
+    <span style="font-size:1.6rem; font-weight:bold; color:#e6edf3;">
+      ${{ stock_data.price }}
+    </span>
+    <span style="font-size:1rem; color:#8b949e;">{{ stock_data.ticker }}</span>
+    <span style="font-size:0.9rem;
+                 color:{% if stock_data.change.startswith('+') %}#3fb950{% else %}#f85149{% endif %};">
+      {{ stock_data.change }}
+    </span>
+    <span style="font-size:0.85rem; color:#8b949e;">{{ stock_data.name }}</span>
+  </div>
+  {% elif result is not none %}
+  <hr class="divider">
+  <p style="font-size:0.8rem; color:#f85149; margin-bottom:6px;">
+    Unexpected response — the server returned raw content from <code>{{ fetched_url }}</code>:
+  </p>
+  <div class="result-box">{{ result }}</div>
+  {% endif %}
+
+  {% if error %}
+  <hr class="divider">
+  <p style="color:#f85149; font-size:0.85rem;">{{ error }}</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  {% if mode == 'vulnerable' %}
+  <span class="vuln-label">Vulnerable code</span>
+  <pre><code class="language-python"># app.py — fetches whatever URL is in the hidden form field
+fetched_url = request.form.get("url", "").strip()
+resp = requests.get(fetched_url, timeout=5)   # ← server makes the request
+result = resp.text</code></pre>
+  {% else %}
+  <span class="safe-label">Protected code</span>
+  <pre><code class="language-python"># app.py — user input never influences an outbound request
+ticker = request.form.get("ticker", "").upper()
+data = STOCK_PRICES.get(ticker)   # ← local dict lookup, no HTTP request
+if data:
+    result = json.dumps({"ticker": ticker, **data})</code></pre>
+  {% endif %}
+  <p style="font-size:0.82rem; color:#8b949e; margin-top:8px;">
+    The root cause of SSRF is allowing user-controlled input to determine what URL the
+    server fetches. The fix is to never make that substitution at all.
+  </p>
+</div>
+
+<div class="card challenge-card">
+  <span class="challenge-label">Challenge</span>
+  <h2>Ready to be tested?</h2>
+  <p>
+    The challenge uses a similar hidden-URL pattern against a different internal service.
+    Your goal is to enumerate the service and reach a restricted endpoint.
+  </p>
+  <p style="font-size:0.85rem; color:#8b949e;">
+    Hint: internal microservices are hosted on the same server under
+    <code>http://127.0.0.1:5000/internal/&lt;service&gt;/</code>.
+    Use the hidden <code>url</code> field to probe what the currency service exposes.
+  </p>
+  <a class="btn" href="/ssrf/challenge">Go to SSRF Challenge &rarr;</a>
+</div>
+
+<script>
+  function updateUrl() {
+    var ticker = document.getElementById('ticker').value;
+    document.getElementById('stock-url').value =
+      'http://127.0.0.1:5000/internal/stocks/' + ticker;
+  }
+</script>
+{% endblock %}

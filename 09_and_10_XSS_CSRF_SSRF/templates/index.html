@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Security Demo — Home{% endblock %}
+{% block content %}
+<h1>Web Security Demonstrations</h1>
+<p>Select a vulnerability below to explore an intentionally insecure demo.</p>
+
+<div class="card">
+  <span class="vuln-label">XSS</span>
+  <h2>Cross-Site Scripting</h2>
+  <p>Attacker-controlled input is rendered as executable HTML/JavaScript inside another user's browser.</p>
+  <ul>
+    <li><a href="/xss/reflected">Reflected XSS</a> — malicious payload lives in the URL; the server echoes it back immediately.</li>
+    <li><a href="/xss/stored">Stored XSS</a> — payload is saved in the database and served to every visitor who loads the page.</li>
+  </ul>
+  <div class="info">
+    Try pasting <code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code> or <code>&lt;img src=x onerror="alert('XSS')"&gt;</code> into the inputs.
+  </div>
+</div>
+
+<div class="card">
+  <span class="vuln-label">CSRF</span>
+  <h2>Cross-Site Request Forgery</h2>
+  <p>A malicious page tricks an authenticated user's browser into making an unintended state-changing request to another site.</p>
+  <ul>
+    <li><a href="/csrf/bank">Victim bank page</a> — a simple transfer form with no CSRF protection.</li>
+    <li><a href="/csrf/evil">Attacker's evil page</a> — auto-submits a hidden form to the bank the moment it loads.</li>
+  </ul>
+  <div class="info">
+    Open the bank page first, note your balance, then visit the evil page in the same browser — watch the balance change automatically.
+  </div>
+</div>
+
+<div class="card">
+  <span class="vuln-label">SSRF</span>
+  <h2>Server-Side Request Forgery</h2>
+  <p>The server is tricked into making HTTP requests on the attacker's behalf, potentially reaching internal services.</p>
+  <ul>
+    <li><a href="/ssrf">SSRF demo</a> — the server fetches any URL you supply.</li>
+    <li>Internal secrets endpoint: <code>/internal/secrets</code> (normally unreachable from outside).</li>
+  </ul>
+  <div class="info">
+    Try fetching <code>http://127.0.0.1:5000/internal/secrets</code> through the SSRF form to access data that should be private.
+  </div>
+</div>
+
+<div class="warning">
+  These pages are <strong>intentionally vulnerable</strong>. Run this app in an isolated environment only. Never expose it to a network.
+</div>
+{% endblock %}

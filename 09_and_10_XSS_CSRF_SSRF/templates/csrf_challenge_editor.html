@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}CSRF — Attack Editor{% endblock %}
+{% block content %}
+<h1>CSRF — Attack Editor</h1>
+
+<div class="info">
+  Write HTML that automatically performs a CSRF attack when loaded. Your page is deployed at
+  <code>/csrf/challenge/preview</code> and rendered in the iframe on the right — simulating
+  the victim visiting your evil site in the same browser session.
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+
+  <!-- code editor -->
+  <div class="card" style="margin-bottom:0;">
+    <h2 style="margin-top:0;">Your attack HTML</h2>
+    <textarea id="attack-html" rows="22"
+              style="width:100%; background:#0d1117; color:#e6edf3;
+                     border:1px solid #30363d; border-radius:4px;
+                     padding:12px; font-family:monospace; font-size:0.82rem;
+                     resize:vertical; margin-bottom:12px;"
+              spellcheck="false"
+              placeholder="<!-- Write your attack here.
+Goal: when this page loads, the victim's email
+must automatically change to pwned@csrf.attack
+without them clicking anything.
+
+Hint: open /csrf/challenge/profile in a new tab
+and inspect the form's action URL and field name.
+-->">{{ attack_html }}</textarea>
+    <button onclick="deploy()">&#x25B6; Deploy &amp; Preview</button>
+    <span id="deploy-status"
+          style="margin-left:12px; font-size:0.82rem; color:#8b949e;"></span>
+  </div>
+
+  <!-- live preview iframe -->
+  <div class="card" style="margin-bottom:0;">
+    <h2 style="margin-top:0;">Preview
+      <span style="font-size:0.75rem; color:#8b949e; font-weight:normal; margin-left:8px;">
+        (victim's browser context)
+      </span>
+    </h2>
+    <iframe id="preview-frame"
+            src="/csrf/challenge/preview"
+            style="width:100%; height:340px; border:1px solid #30363d;
+                   border-radius:4px; background:#fff;"></iframe>
+    <p style="font-size:0.78rem; color:#8b949e; margin:8px 0 0;">
+      Any scripts in your HTML execute here with the victim's session cookies attached.
+    </p>
+  </div>
+
+</div>
+
+<div class="card" style="margin-top:20px;">
+  <div style="display:flex; align-items:center; gap:24px; flex-wrap:wrap;">
+    <div>
+      <span style="font-size:0.8rem; color:#8b949e;">Victim's current email:</span>
+      <code id="victim-email" style="margin-left:8px;">{{ email }}</code>
+    </div>
+    <button onclick="checkStatus()" class="btn btn-secondary" style="padding:4px 14px; font-size:0.82rem;">
+      Refresh
+    </button>
+    <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+      <a href="/csrf/challenge/profile" target="_blank" class="btn btn-secondary"
+         style="padding:4px 14px; font-size:0.82rem;">View profile &rarr;</a>
+      <a href="/csrf/challenge/reset" class="btn btn-secondary"
+         style="padding:4px 14px; font-size:0.82rem;">Reset</a>
+    </div>
+  </div>
+</div>
+
+<div class="card challenge-card">
+  <span class="challenge-label">Flag</span>
+  <h2>Claim Your Flag</h2>
+  <p>
+    Once the victim's email shows <code>pwned@csrf.attack</code> above and the change came
+    from your attack page, click below.
+  </p>
+  <button onclick="claimFlag()">Claim Flag</button>
+  <p class="flag-output" id="flag-out"></p>
+</div>
+
+<script>
+  function deploy() {
+    const html = document.getElementById('attack-html').value;
+    const status = document.getElementById('deploy-status');
+    status.textContent = 'Deploying…';
+
+    fetch('/csrf/challenge/editor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'html=' + encodeURIComponent(html)
+    }).then(() => {
+      // the parameter is a hack to avoid cached versions of the page loading
+      document.getElementById('preview-frame').src = '/csrf/challenge/preview?' + Date.now();
+      status.textContent = 'Deployed ✓';
+      setTimeout(checkStatus, 1200);
+    });
+  }
+
+  function checkStatus() {
+    fetch('/api/csrf-challenge/status')
+      .then(r => r.json())
+      .then(d => {
+        const el = document.getElementById('victim-email');
+        el.textContent = d.email;
+        el.style.color = d.solved ? '#3fb950' : '';
+      });
+  }
+
+  function claimFlag() {
+    fetch('/api/flag/csrf-challenge')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('flag-out').textContent = d.flag || d.error;
+      });
+  }
+</script>
+{% endblock %}
